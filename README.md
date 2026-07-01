@@ -1,4 +1,4 @@
-# 👹 Pain Goblin
+#  Pain Goblin
 
 > **Most startup ideas fail because they start with solutions.**
 > Pain Goblin starts with pain.
@@ -7,22 +7,22 @@ A multi-agent AI system that continuously hunts for startup opportunities by dis
 
 ---
 
-## 🧠 Core Philosophy
+##  Core Philosophy
 
 The internet is a 24/7 complaint machine. Every day, people post about:
 
-- 🔁 Repeated complaints no one has fixed
-- 💸 Expensive manual processes begging to be automated
-- 🔧 Missing tools they'd pay for immediately
-- 💔 Broken workflows destroying productivity
-- 😤 Customer frustrations ignored by incumbents
-- 🐌 Operational bottlenecks costing real money
+-  Repeated complaints no one has fixed
+-  Expensive manual processes begging to be automated
+-  Missing tools they'd pay for immediately
+-  Broken workflows destroying productivity
+-  Customer frustrations ignored by incumbents
+-  Operational bottlenecks costing real money
 
 Pain Goblin crawls all of it. Identifies what's painful enough to pay to solve. Ranks it. Delivers it to your inbox before you've had your morning coffee.
 
 ---
 
-## ⚙️ What It Does
+##  What It Does
 
 ```
 1. Collects discussions from Reddit, Hacker News, RSS feeds, and other public sources
@@ -35,7 +35,7 @@ Pain Goblin crawls all of it. Identifies what's painful enough to pay to solve. 
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -83,13 +83,13 @@ Pain Goblin crawls all of it. Identifies what's painful enough to pay to solve. 
 ┌─────────────────────────────────────────────────┐
 │             REPORTS & ALERTS                     │
 │                                                  │
-│     📊 Structured Reports    📱 Notifications    │
+│      Structured Reports    Notifications    │
 └─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -104,7 +104,7 @@ Pain Goblin crawls all of it. Identifies what's painful enough to pay to solve. 
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 paingoblin/
@@ -132,9 +132,9 @@ paingoblin/
 
 ---
 
-## 🚦 Development Status
+##  Development Status
 
-### ✅ Completed
+###  Completed
 - Project architecture & design
 - UV environment setup
 - PostgreSQL setup
@@ -142,12 +142,12 @@ paingoblin/
 - Configuration management
 - GitHub repository setup
 
-### 🔄 In Progress
+###  In Progress
 - Database models
 - Reddit collector
 - Data pipeline
 
-### 📋 Planned
+###  Planned
 
 | Component | Description |
 |---|---|
@@ -163,7 +163,7 @@ paingoblin/
 
 ---
 
-## 🔮 Vision
+##  Vision
 
 The long-term goal is a fully automated startup research engine that continuously discovers, validates, and prioritizes business opportunities using real-world demand signals.
 
@@ -173,7 +173,7 @@ Instead of spending weeks searching for problems manually — founders should wa
 
 ---
 
-## 👤 Author
+##  Author
 
 Built by **Karanveer Singh**
 

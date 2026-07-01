@@ -4,11 +4,7 @@ from collectors.base_collector import BaseCollector
 
 
 class RSSCollector(BaseCollector):
-    """
-    Collects posts from RSS feeds and converts them into
-    Pain Goblin's standard format.
-    """
-
+   
     def collect_posts(self, feed_url: str, limit: int = 10) -> list[dict]:
         feed = feedparser.parse(feed_url)
 
