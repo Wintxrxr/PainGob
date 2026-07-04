@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-import uuid
+import os
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, List, Optional
@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import (
     DateTime,
     Enum as SQLEnum,
+    Float,
     ForeignKey,
     Index,
     String,
@@ -31,17 +32,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.types import MutableDict
+from sqlalchemy import text
 
 if TYPE_CHECKING:
-    from .models import (
-        Analysis,
-        Arbitration,
-        Delivery,
-        Opportunity,
-        PipelineRun,
-        Post,
-        Report,
-    )
+    # Self‑import removed – all models are defined in this file.
+    pass
 
 
 class Base(DeclarativeBase):
@@ -109,7 +105,10 @@ class Post(Base):
         DateTime(timezone=True), nullable=True
     )
     raw_metadata: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
     )
     status: Mapped[PostStatus] = mapped_column(
         SQLEnum(PostStatus, native_enum=False, validate_strings=True),
@@ -164,31 +163,37 @@ class Analysis(Base):
         nullable=False,
         index=True,
     )
-    # Provider identification – free‑form to stay future‑proof
-    provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)   # e.g. "deepseek", "gemini"
-    model: Mapped[str] = mapped_column(String(100), nullable=False)                 # e.g. "deepseek-chat", "gemini-1.5-pro"
-    model_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True) # e.g. "2024-06-01"
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+    model_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # Normalised, provider‑agnostic fields (nullable – not every provider returns all)
     pain_points: Mapped[Optional[List[str]]] = mapped_column(JSONB, nullable=True)
-    severity: Mapped[Optional[int]] = mapped_column(nullable=True)          # 1‑5
-    frequency: Mapped[Optional[int]] = mapped_column(nullable=True)         # 1‑5
-    urgency: Mapped[Optional[int]] = mapped_column(nullable=True)           # 1‑5
-    monetizability: Mapped[Optional[int]] = mapped_column(nullable=True)    # 1‑5
+    severity: Mapped[Optional[int]] = mapped_column(nullable=True)
+    frequency: Mapped[Optional[int]] = mapped_column(nullable=True)
+    urgency: Mapped[Optional[int]] = mapped_column(nullable=True)
+    monetizability: Mapped[Optional[int]] = mapped_column(nullable=True)
     industry: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     automation_potential: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
-    # Full raw response + any provider‑specific extras
     raw_response: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
     )
     extra: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
     )
 
-    # Operational metadata
-    confidence: Mapped[float] = mapped_column(nullable=False, default=0.0)   # 0.0‑1.0
-    cost_usd: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    confidence: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
+    cost_usd: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
     latency_ms: Mapped[int] = mapped_column(nullable=False, default=0)
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     status: Mapped[RunStatus] = mapped_column(
@@ -218,6 +223,10 @@ class Analysis(Base):
     __table_args__ = (
         Index("ix_analysis_provider_model_created", "provider", "model", "created_at"),
         Index("ix_analysis_status_created", "status", "created_at"),
+        CheckConstraint('severity BETWEEN 1 AND 5 OR severity IS NULL', name='ck_analysis_severity'),
+        CheckConstraint('frequency BETWEEN 1 AND 5 OR frequency IS NULL', name='ck_analysis_frequency'),
+        CheckConstraint('urgency BETWEEN 1 AND 5 OR urgency IS NULL', name='ck_analysis_urgency'),
+        CheckConstraint('monetizability BETWEEN 1 AND 5 OR monetizability IS NULL', name='ck_analysis_monetizability'),
     )
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -239,31 +248,26 @@ class Arbitration(Base):
         unique=True,
         index=True,
     )
-    # Normalised consensus fields (these become the Opportunity columns)
     pain_points: Mapped[List[str]] = mapped_column(JSONB, nullable=False, default=list)
-    severity: Mapped[int] = mapped_column(nullable=False)          # 1‑5
-    frequency: Mapped[int] = mapped_column(nullable=False)         # 1‑5
-    urgency: Mapped[int] = mapped_column(nullable=False)           # 1‑5
-    monetizability: Mapped[int] = mapped_column(nullable=False)    # 1‑5
+    severity: Mapped[int] = mapped_column(nullable=False)
+    frequency: Mapped[int] = mapped_column(nullable=False)
+    urgency: Mapped[int] = mapped_column(nullable=False)
+    monetizability: Mapped[int] = mapped_column(nullable=False)
     industry: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     automation_potential: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    score: Mapped[float] = mapped_column(nullable=False, index=True)   # composite ranking
-    confidence: Mapped[float] = mapped_column(nullable=False, default=0.0)  # consensus confidence
-
-    # Disagreement diagnostics
-    disagreement_flag: Mapped[bool] = mapped_column(nullable=False, default=False)
-    disagreement_details: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+    score: Mapped[float] = mapped_column(nullable=False, index=True)
+    confidence: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
     )
-
-    # Operational metadata
     status: Mapped[RunStatus] = mapped_column(
         SQLEnum(RunStatus, native_enum=False, validate_strings=True),
         nullable=False,
         default=RunStatus.PENDING,
         index=True,
     )
-    cost_usd: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    cost_usd: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
     latency_ms: Mapped[int] = mapped_column(nullable=False, default=0)
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -289,6 +293,10 @@ class Arbitration(Base):
 
     __table_args__ = (
         Index("ix_arbitration_status_created", "status", "created_at"),
+        CheckConstraint('severity BETWEEN 1 AND 5', name='ck_arbitration_severity'),
+        CheckConstraint('frequency BETWEEN 1 AND 5', name='ck_arbitration_frequency'),
+        CheckConstraint('urgency BETWEEN 1 AND 5', name='ck_arbitration_urgency'),
+        CheckConstraint('monetizability BETWEEN 1 AND 5', name='ck_arbitration_monetizability'),
     )
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -320,7 +328,6 @@ class Opportunity(Base):
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # Copied from arbitration for fast reads / historical snapshots
     severity: Mapped[int] = mapped_column(nullable=False)
     frequency: Mapped[int] = mapped_column(nullable=False)
     urgency: Mapped[int] = mapped_column(nullable=False)
@@ -357,15 +364,16 @@ class Opportunity(Base):
     __table_args__ = (
         Index("ix_opportunity_score_created", "score", "created_at"),
         Index("ix_opportunity_status_score", "status", "score"),
+        CheckConstraint('severity BETWEEN 1 AND 5', name='ck_opportunity_severity'),
+        CheckConstraint('frequency BETWEEN 1 AND 5', name='ck_opportunity_frequency'),
+        CheckConstraint('urgency BETWEEN 1 AND 5', name='ck_opportunity_urgency'),
+        CheckConstraint('monetizability BETWEEN 1 AND 5', name='ck_opportunity_monetizability'),
     )
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<Opportunity(id={self.id}, score={self.score}, status={self.status.value})>"
 
 
-# ---------------------------------------------------------------------------
-# Reporting & delivery
-# ---------------------------------------------------------------------------
 class Report(Base):
     """Generated report artefact (Markdown + HTML) for an opportunity."""
 
@@ -390,7 +398,10 @@ class Report(Base):
     content_md: Mapped[str] = mapped_column(Text, nullable=False)
     content_html: Mapped[str] = mapped_column(Text, nullable=False)
     extra: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -448,9 +459,11 @@ class Delivery(Base):
     )
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # Channel‑specific payload / response (Telegram message_id, SMTP receipt, …)
     metadata: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -489,9 +502,8 @@ class PipelineRun(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    # Stage identification
-    stage: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # COLLECT, ANALYZE, ARBITRATE, REPORT, DELIVER
-    entity_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # POST, ANALYSIS, ARBITRATION, REPORT, DELIVERY
+    stage: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), nullable=False, index=True
     )
@@ -509,16 +521,27 @@ class PipelineRun(Base):
         DateTime(timezone=True), nullable=True
     )
     duration_ms: Mapped[Optional[int]] = mapped_column(nullable=True)
-
-    # Cost / resource usage (optional, filled by the stage implementation)
-    cost_usd: Mapped[float] = mapped_column(nullable=False, default=0.0)
+    cost_usd: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0
+    )
     tokens_in: Mapped[int] = mapped_column(nullable=False, default=0)
     tokens_out: Mapped[int] = mapped_column(nullable=False, default=0)
-
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     extra: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, default=dict, server_default="{}"
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        type_=MutableDict(JSONB),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
 
     __table_args__ = (
