@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-import os
+import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
 from typing import TYPE_CHECKING, List, Optional
@@ -28,6 +28,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    CheckConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
@@ -105,10 +106,9 @@ class Post(Base):
         DateTime(timezone=True), nullable=True
     )
     raw_metadata: Mapped[dict] = mapped_column(
-        JSONB,
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
     status: Mapped[PostStatus] = mapped_column(
         SQLEnum(PostStatus, native_enum=False, validate_strings=True),
@@ -176,16 +176,14 @@ class Analysis(Base):
     automation_potential: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     raw_response: Mapped[dict] = mapped_column(
-        JSONB,
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
     extra: Mapped[dict] = mapped_column(
-        JSONB,
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
 
     confidence: Mapped[float] = mapped_column(
@@ -398,10 +396,9 @@ class Report(Base):
     content_md: Mapped[str] = mapped_column(Text, nullable=False)
     content_html: Mapped[str] = mapped_column(Text, nullable=False)
     extra: Mapped[dict] = mapped_column(
-        JSONB,
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -459,15 +456,18 @@ class Delivery(Base):
     )
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    metadata: Mapped[dict] = mapped_column(
-        JSONB,
+    delivery_metadata: Mapped[dict] = mapped_column(
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
+
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -529,10 +529,9 @@ class PipelineRun(Base):
     retry_count: Mapped[int] = mapped_column(nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     extra: Mapped[dict] = mapped_column(
-        JSONB,
+        MutableDict.as_mutable(JSONB),
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict.as_mutable(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
