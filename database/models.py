@@ -32,7 +32,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import MutableDict
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy import text
 
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ class Post(Base):
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
     status: Mapped[PostStatus] = mapped_column(
         SQLEnum(PostStatus, native_enum=False, validate_strings=True),
@@ -179,13 +179,13 @@ class Analysis(Base):
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
     extra: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
 
     confidence: Mapped[float] = mapped_column(
@@ -401,7 +401,7 @@ class Report(Base):
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -463,7 +463,7 @@ class Delivery(Base):
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -532,7 +532,7 @@ class PipelineRun(Base):
         JSONB,
         nullable=False,
         server_default=text("'{}'::jsonb"),
-        type_=MutableDict(JSONB),
+        type_=MutableDict.as_mutable(JSONB),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

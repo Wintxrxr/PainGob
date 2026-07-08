@@ -104,7 +104,7 @@ class PostService:
                         status=post_data.get("status", "NEW"),
                     )
                     .on_conflict_do_nothing(
-                        index_elements=["url", "source"]
+index_elements=["uq_post_url_source"]
                     )
                     .returning(Post.id)
                 )
@@ -154,7 +154,7 @@ class PostService:
                 stmt = (
                     pg_insert(Post)
                     .values(values)
-                    .on_conflict_do_nothing(index_elements=["url", "source"])
+                    .on_conflict_do_nothing(index_elements=["uq_post_url_source"])
                     .returning(Post.id)
                 )
                 inserted_ids = db.execute(stmt).scalars().all()

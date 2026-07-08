@@ -17,6 +17,7 @@ from collectors.rss_collector import RSSCollector
 from collectors.reddit_collector import RedditCollector
 from services.post_service import PostService
 from database.session import get_db
+from sqlalchemy.orm import session_scope
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,8 @@ REDDIT_SUBREDDITS: List[str] = [
 ]
 
 # ---------------------------------------------------------------------------
-
+# 
+# 
 def run_collectors() -> Dict[str, int]:
     """
     Execute all registered collectors, normalise their output,
@@ -46,9 +48,8 @@ def run_collectors() -> Dict[str, int]:
     }
 
     # one DB session for the whole run
-    db_gen = get_db()
-    db = next(db_gen)
-    post_service = PostService(db)
+    with session_scope() as db:
+        post_service = PostService(db)
 
     # -----------------------------------------------------------------------
     # Collectors – each entry is a tuple (collector_instance, kwargs_iterable)
@@ -86,9 +87,7 @@ def run_collectors() -> Dict[str, int]:
         elapsed = time.perf_counter() - start
         log.info("%s finished in %.2fs – collected %d posts", collector_name, elapsed, stats["posts_collected"])
 
-    db.close()
     return stats
-
 
 if __name__ == "__main__":          # manual test
     logging.basicConfig(level=logging.INFO)
